@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prazos de Casa</title>
+<meta name="description" content="Prazos dos pagamentos da casa: Internet, ZAP, DSTV, propinas.">
+<meta name="theme-color" content="#1F5C4A" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101815" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Prazos">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: uma coluna "caderno de pagamentos" — avisos no topo, depois a lista de serviços, cada um com a régua de dias do seu ciclo. */
+:root {
+  --bg: #F2F4F1; --surface: #FFFFFF; --ink: #15211D; --muted: #5B6862; --line: #D9DFDA;
+  --accent: #1F5C4A; --accent-ink: #FFFFFF; --ok: #2E7D4F; --warn: #B86E00; --warn-bg: #FFF4E0;
+  --crit: #C0352B; --crit-bg: #FDE9E6; --tick: #E3E8E4;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #101815; --surface: #17221E; --ink: #E7EEEA; --muted: #9AA9A2; --line: #2A3732;
+  --accent: #6FCBA9; --accent-ink: #0D1714; --ok: #6FCBA9; --warn: #F2B24C; --warn-bg: #2E2414;
+  --crit: #FF8A7E; --crit-bg: #33191A; --tick: #24302B; color-scheme: dark } }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+[hidden] { display: none !important; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(28px, 6vw, 40px); line-height: 1.05; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.today { color: var(--muted); margin: 4px 0 0; }
+h2 { font-family: var(--f-display); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; }
+button { font: inherit; cursor: pointer; border-radius: 10px; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn { background: var(--accent); color: var(--accent-ink); border: 0; padding: 10px 16px; font-weight: 600; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 8px 12px; font-weight: 500; }
+.btn-ghost:hover { border-color: var(--muted); }
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+a { color: var(--accent); }
+
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+.alert { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--warn-bg); }
+.alert.crit { background: var(--crit-bg); }
+.alert .count { font-family: var(--f-mono); font-size: 22px; line-height: 1; min-width: 2.2ch; text-align: center; color: var(--warn); font-variant-numeric: tabular-nums; }
+.alert.crit .count { color: var(--crit); }
+.alert .count small { display: block; font-family: var(--f-body); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 3px; }
+.alert p { margin: 0; min-width: 0; }
+.alert .sub { color: var(--muted); font-size: 13px; }
+.calm { padding: 14px 16px; border-radius: 12px; border: 1px dashed var(--line); color: var(--muted); margin: 0; }
+@media (max-width: 440px) { .alert { grid-template-columns: auto 1fr; } .alert button { grid-column: 1 / -1; } }
+
+.list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 10px 16px; padding: 16px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row .info { min-width: 0; }
+.name { font-weight: 600; font-size: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chip { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.chip.ok { color: var(--ok); } .chip.warn { color: var(--warn); } .chip.crit { color: var(--crit); }
+.meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.left { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.left .n { font-size: 24px; line-height: 1; }
+.left .u { display: block; font-family: var(--f-body); font-size: 12px; color: var(--muted); margin-top: 4px; }
+.meter { grid-column: 1 / -1; display: flex; gap: 2px; height: 10px; }
+.meter i { flex: 1; border-radius: 2px; background: var(--tick); }
+.meter i.used { background: var(--muted); opacity: .45; }
+.meter i.today { background: var(--ink); opacity: 1; }
+.meter i.win { box-shadow: inset 0 -3px 0 var(--warn); }
+.row.crit .meter i.used { background: var(--crit); opacity: .55; }
+.scale { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-top: -4px; }
+.actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.panel p { margin: 0; max-width: 62ch; }
+.panel ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.topic { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.topic code { font-family: var(--f-mono); font-size: 14px; background: var(--bg); border: 1px solid var(--line); padding: 6px 10px; border-radius: 8px; word-break: break-all; user-select: all; }
+.status-line { color: var(--muted); font-size: 13px; min-height: 1.5em; margin: 0; }
+.note { color: var(--muted); font-size: 13px; margin: 0; max-width: 62ch; }
+
+/* Ecrã do PIN */
+.gate { min-height: 70vh; display: grid; place-items: center; }
+.gate form { width: min(360px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.err { color: var(--crit); font-size: 14px; margin: 0; min-height: 1.4em; }
+
+dialog { border: 1px solid var(--line); border-radius: 16px; padding: 0; background: var(--surface); color: var(--ink); width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; }
+dialog::backdrop { background: rgb(0 0 0 / .4); }
+form { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+form h3 { font-family: var(--f-display); font-size: 22px; margin: 0; }
+label { display: flex; flex-direction: column; gap: 4px; font-weight: 500; font-size: 14px; }
+label .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+input, select { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.presets button { padding: 5px 10px; font-size: 13px; }
+.form-actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.form-actions .right { display: flex; gap: 8px; margin-left: auto; }
+.danger { color: var(--crit); border-color: var(--crit); }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+@media (max-width: 440px) { .two { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: no-preference) { .alert { animation: in .3s ease both; } @keyframes in { from { transform: translateY(4px); opacity: .6 } } }
+</style>
+</head>
+<body>
+
+<div class="wrap gate" id="gate" hidden>
+  <form id="pinForm">
+    <h3>Prazos de Casa</h3>
+    <p class="note">Escreva o PIN da família para ver e registar os pagamentos. Só é pedido uma vez neste aparelho.</p>
+    <label for="pin">PIN da família
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+    </label>
+    <p class="err" id="pinErr" role="alert"></p>
+    <button class="btn" type="submit" id="pinBtn">Entrar</button>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div>
+      <h1>Prazos de Casa</h1>
+      <p class="today" id="today"></p>
+    </div>
+    <div class="head-actions">
+      <button class="btn-ghost" id="installBtn" type="button" hidden>Instalar app</button>
+      <button class="btn" id="addBtn" type="button">+ Adicionar serviço</button>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-alerts">
+    <h2 id="h-alerts">Avisos de hoje</h2>
+    <div class="alerts" id="alerts"><p class="calm">A carregar…</p></div>
+  </section>
+
+  <section aria-labelledby="h-list">
+    <h2 id="h-list">Todos os serviços</h2>
+    <div class="list" id="list"><div class="empty">A carregar…</div></div>
+  </section>
+
+  <p class="status-line" id="status" role="status"></p>
+
+  <section aria-labelledby="h-notif">
+    <h2 id="h-notif">Notificações no telefone e no PC</h2>
+    <div class="panel" id="notif">
+      <p>Todos os dias de manhã, se algum prazo estiver a terminar, chega uma notificação à barra de cima do telefone e ao computador. Cada pessoa da casa faz isto uma vez:</p>
+      <ol>
+        <li>Instale a app <b>ntfy</b> (Play Store ou App Store). No PC, abra <a href="https://ntfy.sh/app" target="_blank" rel="noopener">ntfy.sh/app</a> e permita as notificações.</li>
+        <li>Toque em <b>+</b> (subscrever) e escreva este nome de canal:</li>
+      </ol>
+      <div class="topic"><code id="topic">…</code><button class="btn-ghost" type="button" id="copyBtn">Copiar</button></div>
+      <p class="note">Guarde o nome do canal só para a família: quem o souber também recebe os avisos.</p>
+      <div class="topic"><button class="btn-ghost" type="button" id="testBtn">Enviar notificação de teste</button></div>
+    </div>
+  </section>
+
+  <p class="note">Cada serviço conta o prazo a partir do último pagamento. A partir de 7 dias antes do fim (pode mudar em cada serviço), o aviso aparece aqui e chega por notificação todos os dias até ao último dia. Ao pagar, toque em <b>Paguei hoje</b> e a contagem recomeça. · <button class="btn-ghost" type="button" id="logoutBtn" style="padding:2px 8px;font-size:12px">Sair deste aparelho</button></p>
+</div>
+
+<dialog id="dlg">
+  <form id="form">
+    <h3 id="formTitle">Novo serviço</h3>
+    <label for="f-nome">Serviço ou produto
+      <input id="f-nome" required maxlength="60" placeholder="Ex.: Internet, ZAP, DSTV, Propina do João">
+    </label>
+    <div class="two">
+      <label for="f-data">Último pagamento
+        <input id="f-data" type="date" required>
+      </label>
+      <label for="f-ref">Mês pago <span class="hint">opcional, p. ex. propinas</span>
+        <input id="f-ref" type="month">
+      </label>
+    </div>
+    <div>
+      <label for="f-dias">Dura quantos dias?
+        <input id="f-dias" type="number" min="1" max="366" required value="30">
+      </label>
+      <div class="presets">
+        <button type="button" class="btn-ghost" data-d="7">7 dias</button>
+        <button type="button" class="btn-ghost" data-d="10">10 dias</button>
+        <button type="button" class="btn-ghost" data-d="15">15 dias</button>
+        <button type="button" class="btn-ghost" data-d="30">30 dias</button>
+      </div>
+    </div>
+    <div class="two">
+      <label for="f-aviso">Avisar com antecedência
+        <select id="f-aviso">
+          <option value="3">3 dias antes</option>
+          <option value="5">5 dias antes</option>
+          <option value="7" selected>7 dias antes</option>
+          <option value="10">10 dias antes</option>
+        </select>
+      </label>
+      <label for="f-valor">Valor (Kz) <span class="hint">opcional</span>
+        <input id="f-valor" type="number" min="0" step="any" inputmode="decimal">
+      </label>
+    </div>
+    <div class="form-actions">
+      <div id="delWrap"></div>
+      <div class="right">
+        <button type="button" class="btn-ghost" id="cancelBtn">Cancelar</button>
+        <button type="submit" class="btn" id="saveBtn">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

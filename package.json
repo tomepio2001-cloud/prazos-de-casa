@@ -1,0 +1,8 @@
+{
+  "name": "prazos-de-casa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Prazos de pagamentos da casa com avisos diários via ntfy",
+  "engines": { "node": ">=18" }
+}
