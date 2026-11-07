@@ -36,7 +36,7 @@ html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5;
   padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 [hidden] { display: none !important; }
-.wrap { max-width: 760px; margin: 0 auto; padding-block: 28px 64px;
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 64px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex; flex-direction: column; gap: 28px; }
 header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
@@ -113,6 +113,95 @@ input, select { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px s
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
 @media (max-width: 440px) { .two { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: no-preference) { .alert { animation: in .3s ease both; } @keyframes in { from { transform: translateY(4px); opacity: .6 } } }
+
+/* Abas */
+.narrow { max-width: 760px; width: 100%; }
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; gap: 4px; padding-block: 8px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs a { text-decoration: none; color: var(--muted); font-weight: 600; padding: 8px 14px; border-radius: 999px; white-space: nowrap; }
+.tabs a[aria-current="page"] { background: var(--accent); color: var(--accent-ink); }
+.tabs a .dot { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 999px; background: var(--crit); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.tab { display: flex; flex-direction: column; gap: 22px; }
+.sec-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.sec-head h2 { margin: 0; }
+.sec-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+
+/* Resumo (KPIs) */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.kpi span { display: block; font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.kpi b { display: block; font-family: var(--f-mono); font-size: 20px; font-weight: 500; margin-top: 2px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpi.ok b { color: var(--ok); } .kpi.crit b { color: var(--crit); } .kpi.warn b { color: var(--warn); }
+
+/* Barra de filtros */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.toolbar select, .toolbar input { width: auto; flex: 1 1 140px; font-size: 14px; padding: 7px 9px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; padding: 3px; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; font-weight: 600; font-size: 13px; border-radius: 7px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* Tabelas */
+.tbl-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.tbl-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: var(--bg); padding: 9px 10px; white-space: nowrap; }
+td { padding: 9px 10px; border-top: 1px solid var(--line); vertical-align: middle; }
+td.num, th.num { text-align: right; font-family: var(--f-mono); }
+td.c, th.c { text-align: center; }
+.sticky { position: sticky; left: 0; background: var(--surface); z-index: 1; box-shadow: 1px 0 0 var(--line); }
+th.sticky { background: var(--bg); }
+.who b { display: block; font-weight: 600; white-space: nowrap; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+.who small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.tbl-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.legend { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.muted { color: var(--muted); }
+.red { color: var(--crit); } .green { color: var(--ok); }
+
+/* Etiquetas de estado (como no GDAA) */
+.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 46px; padding: 2px 7px; border-radius: 999px; border: 1px solid transparent; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; font-family: var(--f-body); background: transparent; }
+button.badge { cursor: pointer; }
+button.badge:hover { filter: brightness(.96); transform: scale(1.04); }
+.b-pago { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.b-pend { background: var(--crit-bg); color: var(--crit); border-color: color-mix(in srgb, var(--crit) 35%, transparent); }
+.b-parc { background: var(--warn-bg); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.b-fut { background: var(--tick); color: var(--muted); }
+.b-fora { color: var(--muted); opacity: .5; min-width: 0; }
+
+/* Meninos */
+.kids { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.kid { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.kid h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.kid p { margin: 0; font-size: 13px; color: var(--muted); }
+.kid .next { color: var(--ink); }
+.kid .row-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+/* Histórico */
+.mgroup h3 { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 14px; margin: 0; padding: 10px 12px; background: var(--bg); border-top: 1px solid var(--line); }
+.mgroup:first-child h3 { border-top: 0; }
+.mgroup h3 span { font-weight: 400; color: var(--muted); font-size: 13px; }
+.pay { display: grid; grid-template-columns: 64px 1fr auto auto; gap: 10px; align-items: center; padding: 9px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.pay .d { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.pay .t { min-width: 0; }
+.pay .t small { display: block; color: var(--muted); font-size: 12px; }
+.pay .v { font-family: var(--f-mono); text-align: right; white-space: nowrap; }
+.pay .tag { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 1px 6px; border-radius: 6px; background: var(--tick); color: var(--muted); margin-right: 6px; }
+.pay .tag.p { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.pay .x { padding: 3px 8px; font-size: 12px; }
+.pay .x-wrap .confirm { font-size: 12px; gap: 4px; }
+@media (max-width: 480px) { .pay { grid-template-columns: 46px 1fr auto; gap: 6px 8px; font-size: 13px; } .pay .x-wrap { grid-column: 3; justify-self: end; } .pay .x { padding: 2px 7px; font-size: 11px; } }
+td.cell { text-align: center; font-family: var(--f-mono); font-size: 12px; min-width: 64px; }
+td.cell button { border: 0; background: transparent; color: var(--ink); font: inherit; padding: 2px 4px; border-radius: 6px; }
+td.cell button:hover { background: var(--tick); }
+td.cell .cnt { color: var(--muted); font-size: 10px; }
+
+/* Meses a pagar (modal) */
+.months { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.months label { flex-direction: row; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.months label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.months input { width: auto; margin: 0; }
+.months small { color: var(--warn); font-size: 10px; }
+.total { font-family: var(--f-mono); font-size: 15px; }
+.info-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.info-list li { display: flex; justify-content: space-between; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -137,41 +226,128 @@ input, select { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px s
     </div>
     <div class="head-actions">
       <button class="btn-ghost" id="installBtn" type="button" hidden>Instalar app</button>
-      <button class="btn" id="addBtn" type="button">+ Adicionar serviço</button>
     </div>
   </header>
 
-  <section aria-labelledby="h-alerts">
-    <h2 id="h-alerts">Avisos de hoje</h2>
-    <div class="alerts" id="alerts"><p class="calm">A carregar…</p></div>
-  </section>
+  <nav class="tabs" aria-label="Secções">
+    <a href="#prazos" data-tab="prazos">Prazos<span class="dot" id="dotPrazos" hidden></span></a>
+    <a href="#propinas" data-tab="propinas">Propinas<span class="dot" id="dotPropinas" hidden></span></a>
+    <a href="#historico" data-tab="historico">Histórico</a>
+  </nav>
 
-  <section aria-labelledby="h-list">
-    <h2 id="h-list">Todos os serviços</h2>
-    <div class="list" id="list"><div class="empty">A carregar…</div></div>
-  </section>
+  <!-- ===================== PRAZOS ===================== -->
+  <div class="tab narrow" id="tab-prazos">
+    <section aria-labelledby="h-alerts">
+      <h2 id="h-alerts">Avisos de hoje</h2>
+      <div class="alerts" id="alerts"><p class="calm">A carregar…</p></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h2>Serviços</h2>
+        <button class="btn" id="addBtn" type="button">+ Adicionar serviço</button>
+      </div>
+      <div class="list" id="list" style="margin-top:10px"><div class="empty">A carregar…</div></div>
+    </section>
+
+    <section aria-labelledby="h-notif">
+      <h2 id="h-notif">Notificações no telefone e no PC</h2>
+      <div class="panel" id="notif">
+        <p>Todos os dias de manhã, se algum prazo ou propina estiver a terminar, chega uma notificação à barra de cima do telefone e ao computador. Cada pessoa da casa faz isto uma vez:</p>
+        <ol>
+          <li>Instale a app <b>ntfy</b> (Play Store ou App Store). No PC, abra <a href="https://ntfy.sh/app" target="_blank" rel="noopener">ntfy.sh/app</a> e permita as notificações.</li>
+          <li>Toque em <b>+</b> (subscrever) e escreva este nome de canal:</li>
+        </ol>
+        <div class="topic"><code id="topic">…</code><button class="btn-ghost" type="button" id="copyBtn">Copiar</button></div>
+        <p class="note">Guarde o nome do canal só para a família: quem o souber também recebe os avisos.</p>
+        <div class="topic"><button class="btn-ghost" type="button" id="testBtn">Enviar notificação de teste</button></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== PROPINAS ===================== -->
+  <div class="tab" id="tab-propinas" hidden>
+    <div class="sec-head">
+      <div>
+        <h2>Propinas dos meninos</h2>
+        <p>Consulte um mês ou o mapa do ano inteiro. Toque num mês pendente para pagar; num mês pago para ver o registo.</p>
+      </div>
+      <button class="btn" type="button" id="pagarPropinaBtn">+ Registar pagamento</button>
+    </div>
+
+    <div class="kpis" id="kpisPropinas"></div>
+
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Vista">
+        <button type="button" id="vMensal" aria-pressed="true">Lista mensal</button>
+        <button type="button" id="vAnual" aria-pressed="false">Mapa anual</button>
+      </div>
+      <select id="fAno" aria-label="Ano"></select>
+      <select id="fMes" aria-label="Mês"></select>
+      <select id="fAluno" aria-label="Menino"></select>
+      <select id="fSit" aria-label="Situação">
+        <option value="TODAS">Todas as situações</option>
+        <option value="PAGO">Pago</option>
+        <option value="DIVIDA">Por pagar (pendente ou parcial)</option>
+      </select>
+    </div>
+
+    <div class="tbl-wrap">
+      <div class="tbl-scroll" id="tblPropinas"></div>
+      <div class="tbl-foot">
+        <div class="legend">Legenda:
+          <span class="badge b-pago">PAGO</span><span class="badge b-pend">PENDENTE</span><span class="badge b-parc">PARCIAL</span><span class="badge b-fut">FUTURO</span>
+        </div>
+        <span id="footPropinas"></span>
+      </div>
+    </div>
+
+    <section>
+      <div class="sec-head">
+        <h2>Meninos</h2>
+        <button class="btn-ghost" type="button" id="addAlunoBtn">+ Adicionar menino</button>
+      </div>
+      <div class="kids" id="kids" style="margin-top:10px"></div>
+    </section>
+  </div>
+
+  <!-- ===================== HISTÓRICO ===================== -->
+  <div class="tab" id="tab-historico" hidden>
+    <div class="sec-head">
+      <div>
+        <h2>Histórico de pagamentos</h2>
+        <p>Tudo o que foi pago, seguido, mês a mês. Os prazos novos não apagam os pagamentos antigos.</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <select id="hPeriodo" aria-label="Período"></select>
+      <select id="hRef" aria-label="Serviço ou menino"></select>
+      <input id="hBusca" type="search" placeholder="Pesquisar…" aria-label="Pesquisar">
+    </div>
+
+    <div class="kpis" id="kpisHist"></div>
+
+    <section>
+      <h2 id="hMapaTitulo">Mapa anual</h2>
+      <div class="tbl-wrap">
+        <div class="tbl-scroll" id="tblHist"></div>
+        <div class="tbl-foot"><span>Valores pagos em cada mês (pela data do pagamento). Toque num valor para ver esse mês em baixo.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2 id="hListaTitulo">Pagamentos</h2>
+      <div class="tbl-wrap" id="listaHist"></div>
+    </section>
+  </div>
 
   <p class="status-line" id="status" role="status"></p>
-
-  <section aria-labelledby="h-notif">
-    <h2 id="h-notif">Notificações no telefone e no PC</h2>
-    <div class="panel" id="notif">
-      <p>Todos os dias de manhã, se algum prazo estiver a terminar, chega uma notificação à barra de cima do telefone e ao computador. Cada pessoa da casa faz isto uma vez:</p>
-      <ol>
-        <li>Instale a app <b>ntfy</b> (Play Store ou App Store). No PC, abra <a href="https://ntfy.sh/app" target="_blank" rel="noopener">ntfy.sh/app</a> e permita as notificações.</li>
-        <li>Toque em <b>+</b> (subscrever) e escreva este nome de canal:</li>
-      </ol>
-      <div class="topic"><code id="topic">…</code><button class="btn-ghost" type="button" id="copyBtn">Copiar</button></div>
-      <p class="note">Guarde o nome do canal só para a família: quem o souber também recebe os avisos.</p>
-      <div class="topic"><button class="btn-ghost" type="button" id="testBtn">Enviar notificação de teste</button></div>
-    </div>
-  </section>
-
-  <p class="note">Cada serviço conta o prazo a partir do último pagamento. A partir de 7 dias antes do fim (pode mudar em cada serviço), o aviso aparece aqui e chega por notificação todos os dias até ao último dia. Ao pagar, toque em <b>Paguei hoje</b> e a contagem recomeça. · <button class="btn-ghost" type="button" id="logoutBtn" style="padding:2px 8px;font-size:12px">Sair deste aparelho</button></p>
+  <p class="note">Serviços contam o prazo a partir do último pagamento; propinas contam por mês, até ao dia limite de cada mês. Os avisos começam 7 dias antes (pode mudar em cada serviço ou menino). · <button class="btn-ghost" type="button" id="logoutBtn" style="padding:2px 8px;font-size:12px">Sair deste aparelho</button></p>
 </div>
 
 <dialog id="dlg">
-  <form id="form">
+  <form id="form" class="f-servico">
     <h3 id="formTitle">Novo serviço</h3>
     <label for="f-nome">Serviço ou produto
       <input id="f-nome" required maxlength="60" placeholder="Ex.: Internet, ZAP, DSTV, Propina do João">
@@ -214,6 +390,100 @@ input, select { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px s
         <button type="button" class="btn-ghost" id="cancelBtn">Cancelar</button>
         <button type="submit" class="btn" id="saveBtn">Guardar</button>
       </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPagar">
+  <form id="formPagar">
+    <h3 id="pagarTitulo">Registar pagamento</h3>
+    <label for="p-aluno" id="p-aluno-wrap">Menino
+      <select id="p-aluno"></select>
+    </label>
+    <div id="p-meses-wrap">
+      <label style="margin-bottom:6px">Meses a pagar <span class="hint">por ordem: os mais antigos primeiro</span></label>
+      <div class="months" id="p-meses"></div>
+    </div>
+    <p class="note" id="p-info"></p>
+    <div class="two">
+      <label for="p-data">Data do pagamento
+        <input id="p-data" type="date" required>
+      </label>
+      <label for="p-valor"><span id="p-valor-lbl">Valor (Kz)</span>
+        <input id="p-valor" type="number" min="0" step="any" inputmode="decimal">
+      </label>
+    </div>
+    <label for="p-nota">Nota <span class="hint">opcional, p. ex. referência do talão</span>
+      <input id="p-nota" maxlength="120">
+    </label>
+    <p class="total" id="p-total"></p>
+    <div class="form-actions">
+      <div></div>
+      <div class="right">
+        <button type="button" class="btn-ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn" id="p-ok">Confirmar pagamento</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgAluno">
+  <form id="formAluno">
+    <h3 id="alunoTitulo">Novo menino</h3>
+    <label for="a-nome">Nome
+      <input id="a-nome" required maxlength="60" placeholder="Ex.: João">
+    </label>
+    <div class="two">
+      <label for="a-escola">Escola <span class="hint">opcional</span>
+        <input id="a-escola" maxlength="60">
+      </label>
+      <label for="a-classe">Classe <span class="hint">opcional</span>
+        <input id="a-classe" maxlength="30" placeholder="Ex.: 5.ª classe">
+      </label>
+    </div>
+    <div class="two">
+      <label for="a-propina">Propina mensal (Kz)
+        <input id="a-propina" type="number" min="0" step="any" inputmode="decimal">
+      </label>
+      <label for="a-dia">Pagar até ao dia
+        <input id="a-dia" type="number" min="1" max="31" value="10" required>
+      </label>
+    </div>
+    <div class="two">
+      <label for="a-inicio">Primeiro mês com propina
+        <input id="a-inicio" type="month" required>
+      </label>
+      <label for="a-fim">Último mês <span class="hint">opcional, fim do ano letivo</span>
+        <input id="a-fim" type="month">
+      </label>
+    </div>
+    <label for="a-aviso">Avisar com antecedência
+      <select id="a-aviso">
+        <option value="3">3 dias antes do dia limite</option>
+        <option value="5">5 dias antes do dia limite</option>
+        <option value="7" selected>7 dias antes do dia limite</option>
+        <option value="10">10 dias antes do dia limite</option>
+      </select>
+    </label>
+    <p class="note">Os meses antes do primeiro mês que já estejam pagos podem ser registados em <b>Registar pagamento</b>, com a data em que foram pagos.</p>
+    <div class="form-actions">
+      <div id="a-delWrap"></div>
+      <div class="right">
+        <button type="button" class="btn-ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgInfo">
+  <form id="formInfo">
+    <h3 id="infoTitulo"></h3>
+    <p class="note" id="infoSub"></p>
+    <ul class="info-list" id="infoLista"></ul>
+    <div class="form-actions">
+      <div id="infoExtra"></div>
+      <div class="right"><button type="button" class="btn" data-close>Fechar</button></div>
     </div>
   </form>
 </dialog>

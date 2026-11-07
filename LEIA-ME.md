@@ -4,7 +4,11 @@ App para registar os pagamentos da casa (Internet, ZAP, DSTV, propinas…) e rec
 avisos no telefone e no PC a partir de 7 dias antes de cada prazo terminar, todos os dias
 até ao último dia.
 
-- **App**: instalável no telefone e no PC (PWA), protegida por um PIN da família.
+- **App**: instalável no telefone e no PC (PWA), protegida por um PIN da família. Tem três abas:
+  - **Prazos**: serviços pagos por ciclo (Internet, ZAP, DSTV…) e todos os avisos do dia.
+  - **Propinas**: os meninos, com *Lista mensal* e *Mapa anual* (PAGO / PENDENTE / PARCIAL / FUTURO),
+    o próximo mês a pagar por ordem e o pagamento de vários meses de uma vez.
+  - **Histórico**: todos os pagamentos seguidos, mês a mês, com mapa anual e totais.
 - **Dados**: guardados no Upstash Redis (gratuito), partilhados por toda a família.
 - **Avisos**: a Vercel corre `/api/notificar` todas as manhãs e envia para a app **ntfy**.
 
@@ -80,7 +84,10 @@ já expirou. Nesses dias chega uma só notificação com a lista de todos.
 
 ```
 api/_lib.js        utilitários do servidor (Redis, PIN)
-api/servicos.js    ler / criar / alterar / apagar serviços
+api/dados.js       tudo o que a app mostra (serviços, meninos, pagamentos)
+api/servicos.js    criar / alterar / apagar serviços
+api/alunos.js      criar / alterar / apagar meninos
+api/pagamentos.js  registar e anular pagamentos (serviços e propinas)
 api/config.js      confirma o PIN e devolve o canal ntfy
 api/notificar.js   aviso diário (cron) e teste
 public/            a app (HTML, JS, ícones, manifest, service worker)

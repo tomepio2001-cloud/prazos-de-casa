@@ -1,9 +1,11 @@
 // Utilitários do servidor. Ficheiros começados por "_" não viram rotas na Vercel.
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, randomUUID } from "node:crypto";
 
 const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 export const CHAVE = "prazos:servicos"; // hash: id -> JSON do serviço
+export const CHAVE_ALUNOS = "prazos:alunos"; // hash: id -> JSON do menino
+export const CHAVE_PAGAMENTOS = "prazos:pagamentos"; // hash: id -> JSON de um pagamento (histórico)
 
 /** Executa um comando Redis via REST (Upstash). */
 export async function redis(...cmd) {
@@ -14,8 +16,27 @@ export async function redis(...cmd) {
   return j.result;
 }
 
-export async function listarServicos() {
-  const flat = (await redis("HGETALL", CHAVE)) || [];
+export const listarServicos = () => listar(CHAVE);
+export const listarAlunos = () => listar(CHAVE_ALUNOS);
+export const listarPagamentos = () => listar(CHAVE_PAGAMENTOS);
+
+export async function lerUm(chave, id) {
+  const raw = await redis("HGET", chave, id);
+  if (!raw) return null;
+  try { return { id, ...JSON.parse(raw) }; } catch { return null; }
+}
+
+/** Guarda um registo (sem o campo id dentro do JSON). */
+export async function gravar(chave, registo) {
+  const { id, ...resto } = registo;
+  await redis("HSET", chave, id, JSON.stringify(resto));
+}
+
+export const novoId = () => randomUUID().slice(0, 12);
+export const idValido = (id) => typeof id === "string" && /^[\w-]{1,40}$/.test(id);
+
+export async function listar(chave) {
+  const flat = (await redis("HGETALL", chave)) || [];
   const out = [];
   for (let i = 0; i < flat.length; i += 2) {
     try { out.push({ id: flat[i], ...JSON.parse(flat[i + 1]) }); } catch { /* ignora entradas corrompidas */ }
