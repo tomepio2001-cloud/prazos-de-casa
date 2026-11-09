@@ -4,5 +4,10 @@
   "private": true,
   "type": "module",
   "description": "Prazos de pagamentos da casa com avisos diários via ntfy",
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.8.2"
+  }
 }

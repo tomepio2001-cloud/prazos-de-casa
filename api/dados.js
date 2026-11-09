@@ -1,12 +1,11 @@
-// GET /api/dados -> tudo o que a app precisa: serviços, meninos e histórico de pagamentos.
+// GET /api/dados -> tudo o que a app precisa: serviços, meninos, pagamentos, pastas e documentos.
 // Na primeira vez, passa o histórico antigo guardado dentro de cada serviço para o histórico geral.
-import { CHAVE, CHAVE_PAGAMENTOS, listarServicos, listarAlunos, listarPagamentos, gravar, novoId, pinValido, responder } from "./_lib.js";
+import { CHAVE, CHAVE_PAGAMENTOS, listarServicos, listarAlunos, listarPagamentos, listarPessoas, listarDocumentos, gravar, novoId, exigirPin, responder } from "./_lib.js";
 
 export default async function handler(req, res) {
-  if (!process.env.FAMILIA_PIN) return responder(res, 500, { erro: "Falta definir FAMILIA_PIN nas variáveis do projeto Vercel." });
-  if (!pinValido(req)) return responder(res, 401, { erro: "PIN errado." });
+  if (!(await exigirPin(req, res))) return;
   try {
-    let [servicos, alunos, pagamentos] = await Promise.all([listarServicos(), listarAlunos(), listarPagamentos()]);
+    let [servicos, alunos, pagamentos, pessoas, documentos] = await Promise.all([listarServicos(), listarAlunos(), listarPagamentos(), listarPessoas(), listarDocumentos()]);
 
     const antigos = servicos.filter((s) => Array.isArray(s.historico) && s.historico.length);
     for (const s of antigos) {
@@ -19,7 +18,9 @@ export default async function handler(req, res) {
       await gravar(CHAVE, s);
     }
 
-    responder(res, 200, { servicos, alunos, pagamentos });
+    // Dos documentos só vão os metadados; o ficheiro pede-se à parte, com o PIN.
+    documentos = documentos.map(({ url, pathname, ...meta }) => meta);
+    responder(res, 200, { servicos, alunos, pagamentos, pessoas, documentos });
   } catch (e) {
     responder(res, e.status || 500, { erro: e.message || "Erro inesperado." });
   }

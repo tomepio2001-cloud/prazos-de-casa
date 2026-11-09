@@ -21,6 +21,7 @@
   --bg: #F2F4F1; --surface: #FFFFFF; --ink: #15211D; --muted: #5B6862; --line: #D9DFDA;
   --accent: #1F5C4A; --accent-ink: #FFFFFF; --ok: #2E7D4F; --warn: #B86E00; --warn-bg: #FFF4E0;
   --crit: #C0352B; --crit-bg: #FDE9E6; --tick: #E3E8E4;
+  --c-pai: #2F5D8A; --c-mae: #A04668; --c-filho: #1F7A5A; --c-outro: #6B6F5E;
   --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --f-body: "Figtree", "Segoe UI", system-ui, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -29,7 +30,8 @@
 @media (prefers-color-scheme: dark) { :root {
   --bg: #101815; --surface: #17221E; --ink: #E7EEEA; --muted: #9AA9A2; --line: #2A3732;
   --accent: #6FCBA9; --accent-ink: #0D1714; --ok: #6FCBA9; --warn: #F2B24C; --warn-bg: #2E2414;
-  --crit: #FF8A7E; --crit-bg: #33191A; --tick: #24302B; color-scheme: dark } }
+  --crit: #FF8A7E; --crit-bg: #33191A; --tick: #24302B;
+  --c-pai: #7FB0E0; --c-mae: #E89AB8; --c-filho: #6FCBA9; --c-outro: #B4B8A6; color-scheme: dark } }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -116,11 +118,46 @@ input, select { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px s
 
 .envio { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: 13px; }
 .envio.mau { background: var(--crit-bg); }
+
+/* Documentos */
+.pastas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.pasta { all: unset; box-sizing: border-box; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pasta:hover { border-color: var(--muted); }
+.pasta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pasta-ico { position: relative; width: 46px; height: 34px; border-radius: 4px 6px 6px 6px; background: var(--cor, var(--c-outro)); margin-top: 6px; }
+.pasta-ico::before { content: ""; position: absolute; left: 0; top: -6px; width: 20px; height: 8px; border-radius: 4px 4px 0 0; background: var(--cor, var(--c-outro)); }
+.pasta-ico::after { content: ""; position: absolute; inset: 7px 0 0 0; border-radius: 5px; background: color-mix(in srgb, #fff 18%, var(--cor, var(--c-outro))); }
+.pasta b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pasta span { color: var(--muted); font-size: 13px; }
+.p-pai { --cor: var(--c-pai); } .p-mae { --cor: var(--c-mae); } .p-filho { --cor: var(--c-filho); } .p-outro { --cor: var(--c-outro); }
+.docs { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.doc { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px 12px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--line); }
+.doc:first-child { border-top: 0; }
+.doc-ico { width: 40px; height: 48px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); display: grid; place-items: center; font-family: var(--f-mono); font-size: 10px; font-weight: 500; color: var(--muted); }
+.doc .t { min-width: 0; }
+.doc .t b { display: block; font-weight: 600; }
+.doc .t small { color: var(--muted); font-size: 12px; }
+.doc .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.doc .acts button { padding: 5px 10px; font-size: 13px; }
+@media (max-width: 480px) { .doc { grid-template-columns: 34px 1fr; } .doc .acts { grid-column: 1 / -1; justify-content: flex-start; } .doc-ico { width: 34px; height: 42px; } }
+.crumb { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.crumb h2 { margin: 0; font-size: 22px; font-family: var(--f-display); text-transform: none; letter-spacing: 0; color: var(--ink); font-weight: 700; }
+.filebtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.filebtns label { flex-direction: row; align-items: center; gap: 6px; border: 1px dashed var(--muted); border-radius: 10px; padding: 9px 12px; cursor: pointer; font-weight: 600; }
+.filebtns input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.filebtns label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fileinfo { font-size: 13px; color: var(--muted); margin: 0; }
+.viewer { display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; min-height: 200px; overflow: hidden; }
+.viewer img { max-width: 100%; max-height: 70dvh; display: block; }
+.viewer iframe { width: 100%; height: 70dvh; border: 0; }
+dialog.wide { width: min(900px, calc(100vw - 32px)); }
+.privacy { font-size: 12px; color: var(--muted); margin: 0; }
 /* Abas */
 .narrow { max-width: 760px; width: 100%; }
 .tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; gap: 4px; padding-block: 8px; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .tabs a { text-decoration: none; color: var(--muted); font-weight: 600; padding: 8px 14px; border-radius: 999px; white-space: nowrap; }
 .tabs a[aria-current="page"] { background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 520px) { .tabs { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 2px; } .tabs a { padding: 7px 8px; font-size: 13.5px; } .tabs a .dot { margin-left: 3px; min-width: 16px; line-height: 16px; font-size: 10px; } }
 .tabs a .dot { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 999px; background: var(--crit); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
 .tab { display: flex; flex-direction: column; gap: 22px; }
 .sec-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
@@ -235,6 +272,7 @@ td.cell .cnt { color: var(--muted); font-size: 10px; }
     <a href="#prazos" data-tab="prazos">Prazos<span class="dot" id="dotPrazos" hidden></span></a>
     <a href="#propinas" data-tab="propinas">Propinas<span class="dot" id="dotPropinas" hidden></span></a>
     <a href="#historico" data-tab="historico">Histórico</a>
+    <a href="#documentos" data-tab="documentos">Documentos<span class="dot" id="dotDocs" hidden></span></a>
   </nav>
 
   <!-- ===================== PRAZOS ===================== -->
@@ -345,6 +383,34 @@ td.cell .cnt { color: var(--muted); font-size: 10px; }
     </section>
   </div>
 
+
+  <!-- ===================== DOCUMENTOS ===================== -->
+  <div class="tab" id="tab-documentos" hidden>
+    <div id="docsInicio">
+      <div class="sec-head">
+        <div>
+          <h2>Documentos da família</h2>
+          <p>Cópias de BI, passaportes e documentos escolares, numa pasta por pessoa. Só quem tem o PIN da casa os vê.</p>
+        </div>
+        <button class="btn-ghost" type="button" id="novaPastaBtn">+ Nova pasta</button>
+      </div>
+      <div class="pastas" id="pastas" style="margin-top:12px"></div>
+    </div>
+    <div id="docsPasta" hidden>
+      <div class="sec-head">
+        <div class="crumb">
+          <button class="btn-ghost" type="button" id="voltarPastas">← Pastas</button>
+          <h2 id="pastaNome"></h2>
+        </div>
+        <div class="head-actions">
+          <button class="btn-ghost" type="button" id="editarPastaBtn">Editar pasta</button>
+          <button class="btn" type="button" id="addDocBtn">+ Adicionar documento</button>
+        </div>
+      </div>
+      <div class="docs" id="docsLista" style="margin-top:12px"></div>
+    </div>
+    <p class="privacy">Os ficheiros ficam guardados num armazenamento privado: não têm link público e só abrem dentro da app, depois do PIN. As fotografias são reduzidas e perdem os dados de localização antes de serem enviadas.</p>
+  </div>
   <p class="status-line" id="status" role="status"></p>
   <p class="note">Serviços contam o prazo a partir do último pagamento; propinas contam por mês, até ao dia limite de cada mês. Os avisos começam 7 dias antes (pode mudar em cada serviço ou menino). · <button class="btn-ghost" type="button" id="logoutBtn" style="padding:2px 8px;font-size:12px">Sair deste aparelho</button></p>
 </div>
@@ -486,6 +552,90 @@ td.cell .cnt { color: var(--muted); font-size: 10px; }
     <ul class="info-list" id="infoLista"></ul>
     <div class="form-actions">
       <div id="infoExtra"></div>
+      <div class="right"><button type="button" class="btn" data-close>Fechar</button></div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPessoa">
+  <form id="formPessoa">
+    <h3 id="pessoaTitulo">Nova pasta</h3>
+    <label for="ps-nome">Nome
+      <input id="ps-nome" required maxlength="60" placeholder="Ex.: Pai, Mãe, João">
+    </label>
+    <label for="ps-papel">Quem é
+      <select id="ps-papel">
+        <option value="pai">Pai</option>
+        <option value="mae">Mãe</option>
+        <option value="filho">Filho(a)</option>
+        <option value="outro" selected>Outro</option>
+      </select>
+    </label>
+    <div class="form-actions">
+      <div id="ps-delWrap"></div>
+      <div class="right">
+        <button type="button" class="btn-ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgDoc">
+  <form id="formDoc">
+    <h3 id="docTitulo">Novo documento</h3>
+    <div id="d-ficheiro-wrap">
+      <div class="filebtns">
+        <label for="d-foto">Tirar fotografia<input id="d-foto" type="file" accept="image/*" capture="environment"></label>
+        <label for="d-ficheiro">Escolher ficheiro<input id="d-ficheiro" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"></label>
+      </div>
+      <p class="fileinfo" id="d-info">Fotografia (JPG, PNG) ou PDF, até 4 MB.</p>
+    </div>
+    <div class="two">
+      <label for="d-categoria">Tipo
+        <select id="d-categoria">
+          <option value="BI">Bilhete de Identidade</option>
+          <option value="Passaporte">Passaporte</option>
+          <option value="Académico">Académico</option>
+          <option value="Saúde">Saúde</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </label>
+      <label for="d-pasta">Pasta
+        <select id="d-pasta"></select>
+      </label>
+    </div>
+    <label for="d-titulo">Título
+      <input id="d-titulo" required maxlength="80" placeholder="Ex.: Bilhete de Identidade (frente e verso)">
+    </label>
+    <div class="two">
+      <label for="d-numero">Número <span class="hint">opcional</span>
+        <input id="d-numero" maxlength="40">
+      </label>
+      <label for="d-validade">Válido até <span class="hint">opcional; avisa 30 dias antes</span>
+        <input id="d-validade" type="date">
+      </label>
+    </div>
+    <label for="d-nota">Nota <span class="hint">opcional</span>
+      <input id="d-nota" maxlength="200">
+    </label>
+    <div class="form-actions">
+      <div id="d-delWrap"></div>
+      <div class="right">
+        <button type="button" class="btn-ghost" data-close>Cancelar</button>
+        <button type="submit" class="btn" id="d-ok">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgVer" class="wide">
+  <form id="formVer">
+    <h3 id="verTitulo"></h3>
+    <p class="note" id="verSub"></p>
+    <div class="viewer" id="verConteudo"><p class="note">A abrir…</p></div>
+    <div class="form-actions">
+      <div class="head-actions" id="verAcoes"></div>
       <div class="right"><button type="button" class="btn" data-close>Fechar</button></div>
     </div>
   </form>

@@ -2,12 +2,11 @@
 // POST   /api/servicos          -> cria (corpo: serviço) e regista o 1.º pagamento no histórico
 // PUT    /api/servicos?id=...   -> substitui
 // DELETE /api/servicos?id=...   -> apaga (o histórico de pagamentos mantém-se)
-import { redis, CHAVE, CHAVE_PAGAMENTOS, listarServicos, gravar, novoId, idValido, pinValido, lerCorpo, responder } from "./_lib.js";
+import { redis, CHAVE, CHAVE_PAGAMENTOS, listarServicos, gravar, novoId, idValido, exigirPin, lerCorpo, responder } from "./_lib.js";
 import { normalizar } from "../public/prazos-core.js";
 
 export default async function handler(req, res) {
-  if (!process.env.FAMILIA_PIN) return responder(res, 500, { erro: "Falta definir FAMILIA_PIN nas variáveis do projeto Vercel." });
-  if (!pinValido(req)) return responder(res, 401, { erro: "PIN errado." });
+  if (!(await exigirPin(req, res))) return;
   try {
     const id = new URL(req.url, "http://x").searchParams.get("id");
     if (req.method === "GET") return responder(res, 200, { servicos: await listarServicos() });

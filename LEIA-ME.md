@@ -9,6 +9,9 @@ até ao último dia.
   - **Propinas**: os meninos, com *Lista mensal* e *Mapa anual* (PAGO / PENDENTE / PARCIAL / FUTURO),
     o próximo mês a pagar por ordem e o pagamento de vários meses de uma vez.
   - **Histórico**: todos os pagamentos seguidos, mês a mês, com mapa anual e totais.
+  - **Documentos**: uma pasta por pessoa (Pai, Mãe, cada filho) com cópias de BI, passaporte,
+    documentos académicos… guardadas num armazenamento **privado**. Avisa 30 dias antes de um
+    documento expirar.
 - **Dados**: guardados no Upstash Redis (gratuito), partilhados por toda a família.
 - **Avisos**: a Vercel corre `/api/notificar` todas as manhãs e envia para a app **ntfy**.
 
@@ -35,6 +38,12 @@ até ao último dia.
    **Upstash for Redis** → plano **Free** → região mais próxima (ex.: Frankfurt) → **Create**.
 2. Ligue-a ao projeto `prazos-de-casa` quando for pedido. A Vercel cria sozinha as
    variáveis `KV_REST_API_URL` e `KV_REST_API_TOKEN`.
+
+## 3b. Ligar o armazenamento dos documentos (privado)
+
+1. No projeto da Vercel: **Storage** → **Create Database** → **Blob**.
+2. Em *Access*, escolha **Private** (os ficheiros não ficam com link público).
+3. Ligue-o ao projeto `prazos-de-casa`. A Vercel cria a variável `BLOB_READ_WRITE_TOKEN`.
 
 ## 4. Definir as variáveis
 
@@ -88,9 +97,19 @@ api/dados.js       tudo o que a app mostra (serviços, meninos, pagamentos)
 api/servicos.js    criar / alterar / apagar serviços
 api/alunos.js      criar / alterar / apagar meninos
 api/pagamentos.js  registar e anular pagamentos (serviços e propinas)
+api/pessoas.js     pastas da família
+api/documentos.js  enviar, abrir, alterar e apagar documentos
+api/_armazem.js    ficheiros no Vercel Blob (privado)
 api/config.js      confirma o PIN e devolve o canal ntfy
 api/notificar.js   aviso diário (cron) e teste
 public/            a app (HTML, JS, ícones, manifest, service worker)
 public/prazos-core.js  cálculo dos prazos (usado pela app e pelo servidor)
 vercel.json        agendamento diário
 ```
+
+## Segurança
+
+- Todos os pedidos exigem o PIN da família. Depois de **10 PINs errados** a partir da mesma
+  rede, essa rede fica bloqueada durante **15 minutos**. Use um PIN com 6 ou mais dígitos.
+- Os documentos nunca têm link público: o servidor confirma o PIN e entrega o ficheiro à app.
+- As fotografias são reduzidas no telefone e perdem os dados de localização (EXIF) antes do envio.

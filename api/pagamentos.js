@@ -2,11 +2,11 @@
 //   serviço: { tipo:"servico", refId, data, valor?, nota? }  (atualiza o último pagamento do serviço)
 //   propina: { tipo:"propina", refId, data, valor? (por mês), meses:["2026-11", ...], nota? }
 // DELETE /api/pagamentos?id=...   -> anula um registo (e repõe o prazo do serviço, se for o caso)
-import { redis, CHAVE, CHAVE_ALUNOS, CHAVE_PAGAMENTOS, lerUm, gravar, listarPagamentos, novoId, idValido, pinValido, lerCorpo, responder } from "./_lib.js";
+import { redis, CHAVE, CHAVE_ALUNOS, CHAVE_PAGAMENTOS, lerUm, gravar, listarPagamentos, novoId, idValido, exigirPin, lerCorpo, responder } from "./_lib.js";
 import { normalizarPagamento, mesSeguinte } from "../public/prazos-core.js";
 
 export default async function handler(req, res) {
-  if (!pinValido(req)) return responder(res, 401, { erro: "PIN errado." });
+  if (!(await exigirPin(req, res))) return;
   try {
     const id = new URL(req.url, "http://x").searchParams.get("id");
     const agora = new Date().toISOString();

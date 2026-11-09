@@ -1,6 +1,7 @@
 import {
   hojeISO, calcular, dataCurta, dataLonga, nomeMes, addDias, kz, MESES, MESES_CURTOS,
   estadoMesPropina, mesesPorPagar, avisosGerais, dataLimite, nomeMesCurto,
+  diffDias, PAPEIS, TAMANHO_MAX, AVISO_DOC_DIAS,
 } from "/prazos-core.js";
 
 const $ = (id) => document.getElementById(id);
@@ -15,7 +16,8 @@ const mesNome = (ym) => MESES[Number(ym.slice(5)) - 1];
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 let pin = store.get("prazos.pin");
-let D = { servicos: [], alunos: [], pagamentos: [] };
+let D = { servicos: [], alunos: [], pagamentos: [], pessoas: [], documentos: [] };
+let ultimoJSON = "";
 let loaded = false;
 
 // Estado da interface
@@ -29,6 +31,7 @@ const UI = {
   hPeriodo: hoje0.slice(0, 4),
   hRef: "TUDO",
   hBusca: "",
+  pasta: null,
 };
 
 // ---------- API ----------
@@ -56,9 +59,11 @@ function semPin(msg) {
 async function carregar() {
   try {
     const dados = await api("/api/dados");
-    D = { servicos: dados.servicos || [], alunos: dados.alunos || [], pagamentos: dados.pagamentos || [] };
-    loaded = true;
-    store.set("prazos.cache2", JSON.stringify(D));
+    const novo = { servicos: dados.servicos || [], alunos: dados.alunos || [], pagamentos: dados.pagamentos || [], pessoas: dados.pessoas || [], documentos: dados.documentos || [] };
+    const json = JSON.stringify(novo);
+    if (loaded && json === ultimoJSON) return; // nada mudou: não redesenha
+    D = novo; ultimoJSON = json; loaded = true;
+    store.set("prazos.cache2", json);
     render();
   } catch (e) {
     if (e instanceof ErroPin) return semPin(e.message);
@@ -74,7 +79,7 @@ async function guardar(fn, okMsg) {
 }
 
 // ---------- Abas ----------
-const TABS = ["prazos", "propinas", "historico"];
+const TABS = ["prazos", "propinas", "historico", "documentos"];
 function abaAtual() { const h = location.hash.slice(1); return TABS.includes(h) ? h : "prazos"; }
 function mostrarAba() {
   const t = abaAtual();
@@ -94,6 +99,7 @@ function render() {
   renderPrazos(hoje);
   renderPropinas(hoje);
   renderHistorico();
+  renderDocumentos(hoje);
 }
 
 const pagsDe = (tipo, refId) => D.pagamentos.filter((p) => p.tipo === tipo && p.refId === refId);
@@ -104,10 +110,12 @@ function renderPrazos(hoje) {
   const nProp = avisos.filter((a) => a.tipo === "propina").length;
   $("dotPrazos").hidden = !avisos.length; $("dotPrazos").textContent = avisos.length;
   $("dotPropinas").hidden = !nProp; $("dotPropinas").textContent = nProp;
+  const nDocs = avisos.filter((a) => a.tipo === "documento").length;
+  $("dotDocs").hidden = !nDocs; $("dotDocs").textContent = nDocs;
 
   const A = $("alerts");
   const rows = D.servicos.map((s) => ({ s, c: calcular(s, hoje) })).sort((a, b) => a.c.faltam - b.c.faltam);
-  if (!rows.length && !D.alunos.length) A.innerHTML = `<p class="calm">Ainda não há serviços nem meninos. Adicione o primeiro serviço (por exemplo a Internet) ou registe os meninos na aba <a href="#propinas">Propinas</a>.</p>`;
+  if (!rows.length && !D.alunos.length && !avisos.length) A.innerHTML = `<p class="calm">Ainda não há serviços nem meninos. Adicione o primeiro serviço (por exemplo a Internet) ou registe os meninos na aba <a href="#propinas">Propinas</a>.</p>`;
   else if (!avisos.length) {
     const n = rows[0];
     A.innerHTML = `<p class="calm">Nada a pagar esta semana.${n ? ` O próximo serviço é <b>${esc(n.s.nome)}</b>, a ${dataLonga(n.c.fim)} (daqui a ${n.c.faltam} dias).` : ""}</p>`;
@@ -118,7 +126,7 @@ function renderPrazos(hoje) {
       const sub = i > 0 ? a.texto.slice(i + 1) : "";
       return `<div class="alert ${a.nivel}"><div class="count">${a.numero}<small>${esc(a.rotulo)}</small></div>
         <p>${esc(main)}<br><span class="sub">${esc(sub)}</span></p>
-        <button class="btn-ghost" type="button" data-pagar-${a.tipo}="${esc(a.id)}">${a.tipo === "servico" ? "Paguei" : "Pagar propina"}</button></div>`;
+        ${a.tipo === "documento" ? `<button class="btn-ghost" type="button" data-ir-doc="${esc(a.id)}">Ver documento</button>` : `<button class="btn-ghost" type="button" data-pagar-${a.tipo}="${esc(a.id)}">${a.tipo === "servico" ? "Paguei" : "Pagar propina"}</button>`}</div>`;
     }).join("");
   }
 
@@ -396,6 +404,227 @@ function renderHistorico() {
   $("kpisHist").querySelector(".kpi b").textContent = lotes.length;
 }
 
+
+// ---------- DOCUMENTOS ----------
+const PAPEL_ORDEM = { pai: 0, mae: 1, filho: 2, outro: 3 };
+const pessoasOrdenadas = () => [...D.pessoas].sort((a, b) => (PAPEL_ORDEM[a.papel] - PAPEL_ORDEM[b.papel]) || a.nome.localeCompare(b.nome, "pt"));
+const docsDe = (pid) => D.documentos.filter((d) => d.pessoaId === pid).sort((a, b) => a.categoria.localeCompare(b.categoria, "pt") || a.titulo.localeCompare(b.titulo, "pt"));
+const tamanho = (n) => n > 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+
+function estadoValidade(d, hoje) {
+  if (!d.validade) return null;
+  const f = diffDias(hoje, d.validade);
+  if (f < 0) return { cls: "crit", txt: `Expirado a ${dataCurta(d.validade)}` };
+  if (f <= AVISO_DOC_DIAS) return { cls: "warn", txt: `Expira a ${dataCurta(d.validade)}` };
+  return { cls: "ok", txt: `Válido até ${dataCurta(d.validade)} ${d.validade.slice(0, 4)}` };
+}
+
+function renderDocumentos(hoje) {
+  // Pasta aberta que deixou de existir → volta às pastas
+  if (UI.pasta && !D.pessoas.some((p) => p.id === UI.pasta)) UI.pasta = null;
+  $("docsInicio").hidden = !!UI.pasta;
+  $("docsPasta").hidden = !UI.pasta;
+
+  if (!UI.pasta) {
+    const P = $("pastas");
+    if (!D.pessoas.length) {
+      const filhos = D.alunos.map((a) => a.nome);
+      P.innerHTML = `<div class="calm" style="grid-column:1/-1;display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+        <span>Ainda não há pastas. Pode criar já as pastas da família: <b>Pai</b>, <b>Mãe</b>${filhos.length ? ` e uma para cada menino (${esc(filhos.join(", "))})` : ""}.</span>
+        <button class="btn" type="button" id="criarPastasBtn">Criar pastas da família</button></div>`;
+      return;
+    }
+    P.innerHTML = pessoasOrdenadas().map((p) => {
+      const ds = docsDe(p.id);
+      const alerta = ds.map((d) => estadoValidade(d, hoje)).filter((e) => e && e.cls !== "ok");
+      return `<button type="button" class="pasta p-${esc(p.papel)}" data-pasta="${esc(p.id)}">
+        <span class="pasta-ico" aria-hidden="true"></span>
+        <b>${esc(p.nome)}</b>
+        <span>${p.nome.toLowerCase() === PAPEIS[p.papel].toLowerCase() ? "" : esc(PAPEIS[p.papel]) + " · "}${ds.length} ${ds.length === 1 ? "documento" : "documentos"}</span>
+        ${alerta.length ? `<span class="chip ${alerta.some((a) => a.cls === "crit") ? "crit" : "warn"}" style="align-self:flex-start">${alerta.length} a renovar</span>` : ""}
+      </button>`;
+    }).join("");
+    return;
+  }
+
+  const p = D.pessoas.find((x) => x.id === UI.pasta);
+  $("pastaNome").textContent = p.nome;
+  const ds = docsDe(p.id);
+  $("docsLista").innerHTML = ds.length ? ds.map((d) => {
+    const v = estadoValidade(d, hoje);
+    const ext = d.contentType === "application/pdf" ? "PDF" : "FOTO";
+    return `<div class="doc">
+      <span class="doc-ico" aria-hidden="true">${ext}</span>
+      <span class="t"><b>${esc(d.titulo)}</b>
+        <small>${esc([d.categoria, d.numero ? `n.º ${d.numero}` : null, tamanho(d.tamanho || 0)].filter(Boolean).join(" · "))}</small>
+        ${v ? `<span class="chip ${v.cls}" style="display:inline-block;margin-top:4px">${esc(v.txt)}</span>` : ""}
+        ${d.nota ? `<small style="display:block">${esc(d.nota)}</small>` : ""}</span>
+      <span class="acts">
+        <button class="btn-ghost" type="button" data-ver-doc="${esc(d.id)}">Ver</button>
+        <button class="btn-ghost" type="button" data-edit-doc="${esc(d.id)}">Editar</button>
+      </span></div>`;
+  }).join("") : `<div class="empty">Esta pasta ainda está vazia.<br>Toque em <b>+ Adicionar documento</b> e tire uma fotografia ou escolha um PDF.</div>`;
+}
+
+// Pastas
+let pessoaEdit = null;
+function abrirPessoa(id) {
+  pessoaEdit = id || null;
+  const p = id ? D.pessoas.find((x) => x.id === id) : null;
+  $("pessoaTitulo").textContent = p ? "Editar pasta" : "Nova pasta";
+  $("ps-nome").value = p?.nome || "";
+  $("ps-papel").value = p?.papel || "outro";
+  $("ps-delWrap").innerHTML = p ? `<button type="button" class="btn-ghost danger" id="ps-del">Apagar pasta</button>` : "";
+  $("dlgPessoa").showModal();
+}
+$("ps-delWrap").addEventListener("click", (e) => {
+  if (e.target.id === "ps-del") $("ps-delWrap").innerHTML = `<span class="confirm">Apagar a pasta? <button type="button" class="btn-ghost danger" id="ps-delYes">Sim, apagar</button></span>`;
+  else if (e.target.id === "ps-delYes") {
+    const id = pessoaEdit;
+    $("dlgPessoa").close();
+    guardar(async () => { await api(`/api/pessoas?id=${encodeURIComponent(id)}`, { method: "DELETE" }); UI.pasta = null; }, "Pasta apagada.");
+  }
+});
+$("formPessoa").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const body = { nome: $("ps-nome").value.trim(), papel: $("ps-papel").value };
+  if (!body.nome) return;
+  $("dlgPessoa").close();
+  if (pessoaEdit) await guardar(() => api(`/api/pessoas?id=${encodeURIComponent(pessoaEdit)}`, { method: "PUT", body: JSON.stringify(body) }), "Pasta atualizada.");
+  else await guardar(() => api("/api/pessoas", { method: "POST", body: JSON.stringify(body) }), `Pasta ${body.nome} criada.`);
+});
+$("novaPastaBtn").addEventListener("click", () => abrirPessoa());
+$("editarPastaBtn").addEventListener("click", () => abrirPessoa(UI.pasta));
+$("voltarPastas").addEventListener("click", () => { UI.pasta = null; render(); });
+
+// Documento: preparar ficheiro (reduz fotografias e remove dados de localização)
+let ficheiroPronto = null; // { blob, nome }
+async function prepararFicheiro(file) {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
+    if (file.size > TAMANHO_MAX) throw new Error(`Este PDF tem ${tamanho(file.size)}. O máximo é 4 MB: reduza-o ou envie fotografias das páginas.`);
+    return { blob: file, nome: file.name };
+  }
+  let bmp;
+  try { bmp = await createImageBitmap(file); }
+  catch { throw new Error("Não foi possível ler esta imagem. Use uma fotografia JPG ou PNG, ou um PDF."); }
+  const max = 2200;
+  const esc2 = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * esc2); c.height = Math.round(bmp.height * esc2);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close?.();
+  let q = 0.85, blob;
+  do { blob = await new Promise((r) => c.toBlob(r, "image/jpeg", q)); q -= 0.15; } while (blob && blob.size > TAMANHO_MAX && q > 0.3);
+  if (!blob || blob.size > TAMANHO_MAX) throw new Error("A fotografia continua grande demais depois de reduzida. Tente outra.");
+  return { blob, nome: file.name.replace(/\.[^.]+$/, "") + ".jpg" };
+}
+async function escolherFicheiro(input) {
+  const f = input.files?.[0]; input.value = "";
+  if (!f) return;
+  $("d-info").textContent = "A preparar…";
+  try {
+    ficheiroPronto = await prepararFicheiro(f);
+    $("d-info").textContent = `Pronto: ${ficheiroPronto.nome} (${tamanho(ficheiroPronto.blob.size)}).`;
+  } catch (err) { ficheiroPronto = null; $("d-info").textContent = err.message; }
+}
+$("d-foto").addEventListener("change", (e) => escolherFicheiro(e.target));
+$("d-ficheiro").addEventListener("change", (e) => escolherFicheiro(e.target));
+
+const TITULOS = { BI: "Bilhete de Identidade", Passaporte: "Passaporte", "Académico": "", "Saúde": "", Outro: "" };
+$("d-categoria").addEventListener("change", (e) => {
+  const t = $("d-titulo");
+  if (!t.value || Object.values(TITULOS).includes(t.value)) t.value = TITULOS[e.target.value];
+});
+
+let docEdit = null;
+function abrirDoc(id) {
+  docEdit = id || null;
+  const d = id ? D.documentos.find((x) => x.id === id) : null;
+  ficheiroPronto = null;
+  $("docTitulo").textContent = d ? "Editar documento" : "Novo documento";
+  $("d-ficheiro-wrap").hidden = !!d;
+  $("d-info").textContent = "Fotografia (JPG, PNG) ou PDF, até 4 MB.";
+  $("d-pasta").innerHTML = pessoasOrdenadas().map((p) => `<option value="${esc(p.id)}">${esc(p.nome)}</option>`).join("");
+  $("d-pasta").value = d?.pessoaId || UI.pasta || D.pessoas[0]?.id || "";
+  $("d-categoria").value = d?.categoria || "BI";
+  $("d-titulo").value = d ? d.titulo : TITULOS.BI;
+  $("d-numero").value = d?.numero || "";
+  $("d-validade").value = d?.validade || "";
+  $("d-nota").value = d?.nota || "";
+  $("d-delWrap").innerHTML = d ? `<button type="button" class="btn-ghost danger" id="d-del">Apagar</button>` : "";
+  $("d-ok").disabled = false;
+  $("dlgDoc").showModal();
+}
+$("addDocBtn").addEventListener("click", () => abrirDoc());
+$("d-delWrap").addEventListener("click", (e) => {
+  if (e.target.id === "d-del") $("d-delWrap").innerHTML = `<span class="confirm">Apagar o documento e o ficheiro? <button type="button" class="btn-ghost danger" id="d-delYes">Sim, apagar</button></span>`;
+  else if (e.target.id === "d-delYes") {
+    const id = docEdit;
+    $("dlgDoc").close();
+    guardar(() => api(`/api/documentos?id=${encodeURIComponent(id)}`, { method: "DELETE" }), "Documento apagado.");
+  }
+});
+$("formDoc").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const meta = {
+    pessoaId: $("d-pasta").value, categoria: $("d-categoria").value, titulo: $("d-titulo").value.trim(),
+    numero: $("d-numero").value.trim() || null, validade: $("d-validade").value || null, nota: $("d-nota").value.trim() || null,
+  };
+  if (!meta.titulo || !meta.pessoaId) return;
+  if (docEdit) {
+    $("dlgDoc").close();
+    await guardar(() => api(`/api/documentos?id=${encodeURIComponent(docEdit)}`, { method: "PUT", body: JSON.stringify(meta) }), "Documento atualizado.");
+    return;
+  }
+  if (!ficheiroPronto) { $("d-info").textContent = "Escolha primeiro a fotografia ou o PDF."; return; }
+  $("d-ok").disabled = true; $("d-info").textContent = "A enviar…";
+  meta.nomeFicheiro = ficheiroPronto.nome;
+  try {
+    const r = await fetch("/api/documentos", { method: "POST", headers: { "Content-Type": "application/octet-stream", "x-pin": pin || "", "x-doc": encodeURIComponent(JSON.stringify(meta)) }, body: ficheiroPronto.blob });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { $("dlgDoc").close(); return semPin(j.erro); }
+    if (!r.ok) throw new Error(j.erro || `Erro ${r.status}`);
+    $("dlgDoc").close();
+    UI.pasta = meta.pessoaId;
+    status(`${meta.titulo} guardado.`);
+    await carregar();
+  } catch (err) { $("d-info").textContent = "Não foi possível enviar: " + err.message; $("d-ok").disabled = false; }
+});
+
+// Ver um documento: pede o ficheiro com o PIN e mostra-o dentro da app
+let urlAberto = null;
+async function verDoc(id) {
+  const d = D.documentos.find((x) => x.id === id); if (!d) return;
+  const dono = D.pessoas.find((p) => p.id === d.pessoaId)?.nome;
+  $("verTitulo").textContent = d.titulo;
+  $("verSub").textContent = [dono, d.categoria, d.numero ? `n.º ${d.numero}` : null, d.validade ? `válido até ${dataLonga(d.validade)} ${d.validade.slice(0, 4)}` : null].filter(Boolean).join(" · ");
+  $("verConteudo").innerHTML = `<p class="note">A abrir…</p>`;
+  $("verAcoes").innerHTML = "";
+  $("dlgVer").showModal();
+  try {
+    const r = await fetch(`/api/documentos?id=${encodeURIComponent(id)}`, { headers: { "x-pin": pin || "" } });
+    if (r.status === 401) { $("dlgVer").close(); return semPin("PIN errado."); }
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.erro || `Erro ${r.status}`); }
+    const blob = await r.blob();
+    if (urlAberto) URL.revokeObjectURL(urlAberto);
+    urlAberto = URL.createObjectURL(blob);
+    const pdf = blob.type === "application/pdf";
+    $("verConteudo").innerHTML = pdf
+      ? `<iframe src="${urlAberto}" title="${esc(d.titulo)}"></iframe>`
+      : `<img src="${urlAberto}" alt="${esc(d.titulo)}">`;
+    $("verAcoes").innerHTML = `<a class="btn-ghost" style="text-decoration:none" href="${urlAberto}" target="_blank" rel="noopener">${pdf ? "Abrir PDF em ecrã inteiro" : "Abrir em ecrã inteiro"}</a>
+      <a class="btn-ghost" style="text-decoration:none" href="${urlAberto}" download="${esc(d.nomeFicheiro || d.titulo)}">Guardar cópia</a>`;
+  } catch (err) {
+    $("verConteudo").innerHTML = `<p class="note">Não foi possível abrir: ${esc(err.message)}</p>`;
+  }
+}
+$("dlgVer").addEventListener("close", () => { if (urlAberto) { URL.revokeObjectURL(urlAberto); urlAberto = null; } $("verConteudo").innerHTML = ""; });
+
+async function criarPastasFamilia() {
+  const pessoas = [{ nome: "Pai", papel: "pai" }, { nome: "Mãe", papel: "mae" }, ...D.alunos.map((a) => ({ nome: a.nome, papel: "filho", alunoId: a.id }))];
+  await guardar(() => api("/api/pessoas", { method: "POST", body: JSON.stringify({ pessoas }) }), `${pessoas.length} pastas criadas.`);
+}
+
 // ---------- Modal: registar pagamento ----------
 let pagarCtx = null; // { tipo, id, ateMes? }
 
@@ -614,6 +843,11 @@ document.addEventListener("click", (e) => {
   if (t.dataset.pagarServico) { abrirPagarServico(t.dataset.pagarServico); return; }
   if (t.dataset.pagarPropina) { abrirPagarPropina(t.dataset.pagarPropina); return; }
   if (t.dataset.edit) { abrirForm(t.dataset.edit); return; }
+  if (t.dataset.pasta) { UI.pasta = t.dataset.pasta; render(); window.scrollTo({ top: 0 }); return; }
+  if (t.dataset.verDoc) { verDoc(t.dataset.verDoc); return; }
+  if (t.dataset.editDoc) { abrirDoc(t.dataset.editDoc); return; }
+  if (t.dataset.irDoc) { const d = D.documentos.find((x) => x.id === t.dataset.irDoc); if (d) { UI.pasta = d.pessoaId; location.hash = "#documentos"; render(); verDoc(d.id); } return; }
+  if (t.id === "criarPastasBtn") { t.disabled = true; criarPastasFamilia(); return; }
   if (t.dataset.editAluno) { abrirAluno(t.dataset.editAluno); return; }
   if (t.dataset.cel) {
     const [id, ym] = t.dataset.cel.split("|");
@@ -694,7 +928,7 @@ $("pinForm").addEventListener("submit", async (e) => {
     $("pin").value = "";
     entrar();
   } catch (err) {
-    $("pinErr").textContent = err instanceof ErroPin ? "PIN errado. Tente de novo." : "Sem ligação ao servidor: " + err.message;
+    $("pinErr").textContent = err instanceof ErroPin ? "PIN errado. Tente de novo." : err.message;
     pin = null;
   } finally { $("pinBtn").disabled = false; }
 });
@@ -718,6 +952,8 @@ window.addEventListener("appinstalled", () => { $("installBtn").hidden = true; s
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 
 document.addEventListener("visibilitychange", () => { if (!document.hidden && pin) carregar(); });
+// Mantém todos os aparelhos da casa atualizados: com a app aberta, verifica alterações a cada 30 segundos.
+setInterval(() => { if (pin && !document.hidden && !document.querySelector("dialog[open]")) carregar(); }, 30 * 1000);
 setInterval(() => { if (pin) render(); }, 60 * 60 * 1000);
 
 if (pin) entrar(); else semPin("");

@@ -1,18 +1,19 @@
 // Corre todos os dias pelo agendador da Vercel (vercel.json -> crons).
 // Também pode ser chamado pela app com o PIN e ?teste=1 para enviar um aviso de teste.
-import { listarServicos, listarAlunos, listarPagamentos, pinValido, vemDoCron, registarEnvio, responder } from "./_lib.js";
+import { listarServicos, listarAlunos, listarPagamentos, listarPessoas, listarDocumentos, exigirPin, vemDoCron, registarEnvio, responder } from "./_lib.js";
 import { hojeISO, avisosGerais } from "../public/prazos-core.js";
 
 export default async function handler(req, res) {
   const teste = new URL(req.url, "http://x").searchParams.get("teste") === "1";
   const doCron = vemDoCron(req);
-  if (!doCron && !pinValido(req)) {
+  if (!doCron && !req.headers["x-pin"]) {
     // O agendador da Vercel identifica-se assim; se chegou aqui, o CRON_SECRET falta ou não coincide.
     if (String(req.headers["user-agent"] || "").startsWith("vercel-cron")) {
       await registarEnvio({ ok: false, motivo: process.env.CRON_SECRET ? "O agendador foi recusado: o CRON_SECRET não coincide. Volte a gravá-lo na Vercel e faça Redeploy." : "O agendador foi recusado: falta a variável CRON_SECRET na Vercel." });
     }
     return responder(res, 401, { erro: "Não autorizado." });
   }
+  if (!doCron && !(await exigirPin(req, res))) return;
   const auto = doCron && !teste;
 
   const topico = process.env.NTFY_TOPIC;
@@ -23,8 +24,8 @@ export default async function handler(req, res) {
   const site = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined;
 
   try {
-    const [servicos, alunos, pagamentos] = await Promise.all([listarServicos(), listarAlunos(), listarPagamentos()]);
-    const lista = avisosGerais({ servicos, alunos, pagamentos }, hoje);
+    const [servicos, alunos, pagamentos, pessoas, documentos] = await Promise.all([listarServicos(), listarAlunos(), listarPagamentos(), listarPessoas(), listarDocumentos()]);
+    const lista = avisosGerais({ servicos, alunos, pagamentos, pessoas, documentos }, hoje);
 
     if (!lista.length && !teste) {
       if (auto) await registarEnvio({ ok: true, enviado: false, itens: 0, motivo: "Não havia prazos nem propinas dentro da janela de aviso." });

@@ -1,11 +1,11 @@
 // POST   /api/alunos          -> adiciona um menino
 // PUT    /api/alunos?id=...   -> altera
 // DELETE /api/alunos?id=...   -> apaga (os pagamentos já feitos ficam no histórico)
-import { redis, CHAVE_ALUNOS, gravar, novoId, idValido, pinValido, lerCorpo, responder } from "./_lib.js";
+import { redis, CHAVE_ALUNOS, gravar, novoId, idValido, exigirPin, lerCorpo, responder } from "./_lib.js";
 import { normalizarAluno } from "../public/prazos-core.js";
 
 export default async function handler(req, res) {
-  if (!pinValido(req)) return responder(res, 401, { erro: "PIN errado." });
+  if (!(await exigirPin(req, res))) return;
   try {
     const id = new URL(req.url, "http://x").searchParams.get("id");
     if (req.method === "DELETE") {

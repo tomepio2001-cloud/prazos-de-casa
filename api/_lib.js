@@ -6,6 +6,8 @@ const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_R
 export const CHAVE = "prazos:servicos"; // hash: id -> JSON do serviço
 export const CHAVE_ALUNOS = "prazos:alunos"; // hash: id -> JSON do menino
 export const CHAVE_PAGAMENTOS = "prazos:pagamentos"; // hash: id -> JSON de um pagamento (histórico)
+export const CHAVE_PESSOAS = "prazos:pessoas"; // hash: id -> JSON de uma pasta (pessoa)
+export const CHAVE_DOCS = "prazos:documentos"; // hash: id -> metadados de um documento
 export const CHAVE_ENVIO = "prazos:ultimo-envio-auto"; // JSON do último envio automático (diagnóstico)
 
 /** Executa um comando Redis via REST (Upstash). */
@@ -20,6 +22,8 @@ export async function redis(...cmd) {
 export const listarServicos = () => listar(CHAVE);
 export const listarAlunos = () => listar(CHAVE_ALUNOS);
 export const listarPagamentos = () => listar(CHAVE_PAGAMENTOS);
+export const listarPessoas = () => listar(CHAVE_PESSOAS);
+export const listarDocumentos = () => listar(CHAVE_DOCS);
 
 export async function lerUm(chave, id) {
   const raw = await redis("HGET", chave, id);
@@ -52,6 +56,25 @@ export function pinValido(req) {
   const pin = process.env.FAMILIA_PIN;
   if (!pin) return false;
   return igual(req.headers["x-pin"] || "", pin);
+}
+
+const MAX_FALHAS = 10;
+/**
+ * Exige o PIN da família. Depois de 10 PINs errados vindos do mesmo endereço,
+ * recusa tudo desse endereço durante 15 minutos (protege contra adivinhar o PIN).
+ * Responde ao pedido e devolve false quando não autoriza.
+ */
+export async function exigirPin(req, res) {
+  if (!process.env.FAMILIA_PIN) { responder(res, 500, { erro: "Falta definir FAMILIA_PIN nas variáveis do projeto Vercel." }); return false; }
+  const ip = (String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket?.remoteAddress || "desconhecido").slice(0, 64);
+  const chave = `prazos:falhas:${ip}`;
+  let falhas = 0;
+  try { falhas = Number(await redis("GET", chave)) || 0; } catch { /* sem contador, segue */ }
+  if (falhas >= MAX_FALHAS) { responder(res, 429, { erro: "Demasiadas tentativas com o PIN errado. Espere 15 minutos e tente de novo." }); return false; }
+  if (pinValido(req)) return true;
+  try { await redis("INCR", chave); await redis("EXPIRE", chave, 900); } catch { /* ignora */ }
+  responder(res, 401, { erro: "PIN errado." });
+  return false;
 }
 
 /** Pedido vindo do agendador da Vercel (Authorization: Bearer CRON_SECRET). */
