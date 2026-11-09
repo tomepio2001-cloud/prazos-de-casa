@@ -10,8 +10,8 @@ até ao último dia.
     o próximo mês a pagar por ordem e o pagamento de vários meses de uma vez.
   - **Histórico**: todos os pagamentos seguidos, mês a mês, com mapa anual e totais.
   - **Documentos**: uma pasta por pessoa (Pai, Mãe, cada filho) com cópias de BI, passaporte,
-    documentos académicos… guardadas num armazenamento **privado**. Avisa 30 dias antes de um
-    documento expirar.
+    documentos académicos… guardadas num armazenamento **privado**, só para acesso rápido
+    (os documentos não têm prazos nem avisos).
 - **Dados**: guardados no Upstash Redis (gratuito), partilhados por toda a família.
 - **Avisos**: a Vercel corre `/api/notificar` todas as manhãs e envia para a app **ntfy**.
 

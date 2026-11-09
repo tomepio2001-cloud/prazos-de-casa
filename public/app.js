@@ -1,7 +1,7 @@
 import {
   hojeISO, calcular, dataCurta, dataLonga, nomeMes, addDias, kz, MESES, MESES_CURTOS,
   estadoMesPropina, mesesPorPagar, avisosGerais, dataLimite, nomeMesCurto,
-  diffDias, PAPEIS, TAMANHO_MAX, AVISO_DOC_DIAS,
+  PAPEIS, TAMANHO_MAX,
 } from "/prazos-core.js";
 
 const $ = (id) => document.getElementById(id);
@@ -99,7 +99,7 @@ function render() {
   renderPrazos(hoje);
   renderPropinas(hoje);
   renderHistorico();
-  renderDocumentos(hoje);
+  renderDocumentos();
 }
 
 const pagsDe = (tipo, refId) => D.pagamentos.filter((p) => p.tipo === tipo && p.refId === refId);
@@ -110,12 +110,10 @@ function renderPrazos(hoje) {
   const nProp = avisos.filter((a) => a.tipo === "propina").length;
   $("dotPrazos").hidden = !avisos.length; $("dotPrazos").textContent = avisos.length;
   $("dotPropinas").hidden = !nProp; $("dotPropinas").textContent = nProp;
-  const nDocs = avisos.filter((a) => a.tipo === "documento").length;
-  $("dotDocs").hidden = !nDocs; $("dotDocs").textContent = nDocs;
 
   const A = $("alerts");
   const rows = D.servicos.map((s) => ({ s, c: calcular(s, hoje) })).sort((a, b) => a.c.faltam - b.c.faltam);
-  if (!rows.length && !D.alunos.length && !avisos.length) A.innerHTML = `<p class="calm">Ainda não há serviços nem meninos. Adicione o primeiro serviço (por exemplo a Internet) ou registe os meninos na aba <a href="#propinas">Propinas</a>.</p>`;
+  if (!rows.length && !D.alunos.length) A.innerHTML = `<p class="calm">Ainda não há serviços nem meninos. Adicione o primeiro serviço (por exemplo a Internet) ou registe os meninos na aba <a href="#propinas">Propinas</a>.</p>`;
   else if (!avisos.length) {
     const n = rows[0];
     A.innerHTML = `<p class="calm">Nada a pagar esta semana.${n ? ` O próximo serviço é <b>${esc(n.s.nome)}</b>, a ${dataLonga(n.c.fim)} (daqui a ${n.c.faltam} dias).` : ""}</p>`;
@@ -126,7 +124,7 @@ function renderPrazos(hoje) {
       const sub = i > 0 ? a.texto.slice(i + 1) : "";
       return `<div class="alert ${a.nivel}"><div class="count">${a.numero}<small>${esc(a.rotulo)}</small></div>
         <p>${esc(main)}<br><span class="sub">${esc(sub)}</span></p>
-        ${a.tipo === "documento" ? `<button class="btn-ghost" type="button" data-ir-doc="${esc(a.id)}">Ver documento</button>` : `<button class="btn-ghost" type="button" data-pagar-${a.tipo}="${esc(a.id)}">${a.tipo === "servico" ? "Paguei" : "Pagar propina"}</button>`}</div>`;
+        <button class="btn-ghost" type="button" data-pagar-${a.tipo}="${esc(a.id)}">${a.tipo === "servico" ? "Paguei" : "Pagar propina"}</button></div>`;
     }).join("");
   }
 
@@ -411,15 +409,7 @@ const pessoasOrdenadas = () => [...D.pessoas].sort((a, b) => (PAPEL_ORDEM[a.pape
 const docsDe = (pid) => D.documentos.filter((d) => d.pessoaId === pid).sort((a, b) => a.categoria.localeCompare(b.categoria, "pt") || a.titulo.localeCompare(b.titulo, "pt"));
 const tamanho = (n) => n > 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
 
-function estadoValidade(d, hoje) {
-  if (!d.validade) return null;
-  const f = diffDias(hoje, d.validade);
-  if (f < 0) return { cls: "crit", txt: `Expirado a ${dataCurta(d.validade)}` };
-  if (f <= AVISO_DOC_DIAS) return { cls: "warn", txt: `Expira a ${dataCurta(d.validade)}` };
-  return { cls: "ok", txt: `Válido até ${dataCurta(d.validade)} ${d.validade.slice(0, 4)}` };
-}
-
-function renderDocumentos(hoje) {
+function renderDocumentos() {
   // Pasta aberta que deixou de existir → volta às pastas
   if (UI.pasta && !D.pessoas.some((p) => p.id === UI.pasta)) UI.pasta = null;
   $("docsInicio").hidden = !!UI.pasta;
@@ -436,12 +426,10 @@ function renderDocumentos(hoje) {
     }
     P.innerHTML = pessoasOrdenadas().map((p) => {
       const ds = docsDe(p.id);
-      const alerta = ds.map((d) => estadoValidade(d, hoje)).filter((e) => e && e.cls !== "ok");
       return `<button type="button" class="pasta p-${esc(p.papel)}" data-pasta="${esc(p.id)}">
         <span class="pasta-ico" aria-hidden="true"></span>
         <b>${esc(p.nome)}</b>
         <span>${p.nome.toLowerCase() === PAPEIS[p.papel].toLowerCase() ? "" : esc(PAPEIS[p.papel]) + " · "}${ds.length} ${ds.length === 1 ? "documento" : "documentos"}</span>
-        ${alerta.length ? `<span class="chip ${alerta.some((a) => a.cls === "crit") ? "crit" : "warn"}" style="align-self:flex-start">${alerta.length} a renovar</span>` : ""}
       </button>`;
     }).join("");
     return;
@@ -451,13 +439,11 @@ function renderDocumentos(hoje) {
   $("pastaNome").textContent = p.nome;
   const ds = docsDe(p.id);
   $("docsLista").innerHTML = ds.length ? ds.map((d) => {
-    const v = estadoValidade(d, hoje);
     const ext = d.contentType === "application/pdf" ? "PDF" : "FOTO";
     return `<div class="doc">
       <span class="doc-ico" aria-hidden="true">${ext}</span>
       <span class="t"><b>${esc(d.titulo)}</b>
         <small>${esc([d.categoria, d.numero ? `n.º ${d.numero}` : null, tamanho(d.tamanho || 0)].filter(Boolean).join(" · "))}</small>
-        ${v ? `<span class="chip ${v.cls}" style="display:inline-block;margin-top:4px">${esc(v.txt)}</span>` : ""}
         ${d.nota ? `<small style="display:block">${esc(d.nota)}</small>` : ""}</span>
       <span class="acts">
         <button class="btn-ghost" type="button" data-ver-doc="${esc(d.id)}">Ver</button>
@@ -549,7 +535,6 @@ function abrirDoc(id) {
   $("d-categoria").value = d?.categoria || "BI";
   $("d-titulo").value = d ? d.titulo : TITULOS.BI;
   $("d-numero").value = d?.numero || "";
-  $("d-validade").value = d?.validade || "";
   $("d-nota").value = d?.nota || "";
   $("d-delWrap").innerHTML = d ? `<button type="button" class="btn-ghost danger" id="d-del">Apagar</button>` : "";
   $("d-ok").disabled = false;
@@ -568,7 +553,7 @@ $("formDoc").addEventListener("submit", async (e) => {
   e.preventDefault();
   const meta = {
     pessoaId: $("d-pasta").value, categoria: $("d-categoria").value, titulo: $("d-titulo").value.trim(),
-    numero: $("d-numero").value.trim() || null, validade: $("d-validade").value || null, nota: $("d-nota").value.trim() || null,
+    numero: $("d-numero").value.trim() || null, nota: $("d-nota").value.trim() || null,
   };
   if (!meta.titulo || !meta.pessoaId) return;
   if (docEdit) {
@@ -597,7 +582,7 @@ async function verDoc(id) {
   const d = D.documentos.find((x) => x.id === id); if (!d) return;
   const dono = D.pessoas.find((p) => p.id === d.pessoaId)?.nome;
   $("verTitulo").textContent = d.titulo;
-  $("verSub").textContent = [dono, d.categoria, d.numero ? `n.º ${d.numero}` : null, d.validade ? `válido até ${dataLonga(d.validade)} ${d.validade.slice(0, 4)}` : null].filter(Boolean).join(" · ");
+  $("verSub").textContent = [dono, d.categoria, d.numero ? `n.º ${d.numero}` : null].filter(Boolean).join(" · ");
   $("verConteudo").innerHTML = `<p class="note">A abrir…</p>`;
   $("verAcoes").innerHTML = "";
   $("dlgVer").showModal();
@@ -846,7 +831,6 @@ document.addEventListener("click", (e) => {
   if (t.dataset.pasta) { UI.pasta = t.dataset.pasta; render(); window.scrollTo({ top: 0 }); return; }
   if (t.dataset.verDoc) { verDoc(t.dataset.verDoc); return; }
   if (t.dataset.editDoc) { abrirDoc(t.dataset.editDoc); return; }
-  if (t.dataset.irDoc) { const d = D.documentos.find((x) => x.id === t.dataset.irDoc); if (d) { UI.pasta = d.pessoaId; location.hash = "#documentos"; render(); verDoc(d.id); } return; }
   if (t.id === "criarPastasBtn") { t.disabled = true; criarPastasFamilia(); return; }
   if (t.dataset.editAluno) { abrirAluno(t.dataset.editAluno); return; }
   if (t.dataset.cel) {

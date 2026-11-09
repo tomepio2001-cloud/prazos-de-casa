@@ -1,6 +1,6 @@
 // Corre todos os dias pelo agendador da Vercel (vercel.json -> crons).
 // Também pode ser chamado pela app com o PIN e ?teste=1 para enviar um aviso de teste.
-import { listarServicos, listarAlunos, listarPagamentos, listarPessoas, listarDocumentos, exigirPin, vemDoCron, registarEnvio, responder } from "./_lib.js";
+import { listarServicos, listarAlunos, listarPagamentos, exigirPin, vemDoCron, registarEnvio, responder } from "./_lib.js";
 import { hojeISO, avisosGerais } from "../public/prazos-core.js";
 
 export default async function handler(req, res) {
@@ -24,8 +24,8 @@ export default async function handler(req, res) {
   const site = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined;
 
   try {
-    const [servicos, alunos, pagamentos, pessoas, documentos] = await Promise.all([listarServicos(), listarAlunos(), listarPagamentos(), listarPessoas(), listarDocumentos()]);
-    const lista = avisosGerais({ servicos, alunos, pagamentos, pessoas, documentos }, hoje);
+    const [servicos, alunos, pagamentos] = await Promise.all([listarServicos(), listarAlunos(), listarPagamentos()]);
+    const lista = avisosGerais({ servicos, alunos, pagamentos }, hoje);
 
     if (!lista.length && !teste) {
       if (auto) await registarEnvio({ ok: true, enviado: false, itens: 0, motivo: "Não havia prazos nem propinas dentro da janela de aviso." });

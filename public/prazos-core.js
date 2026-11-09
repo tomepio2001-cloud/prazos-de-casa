@@ -126,8 +126,8 @@ export function avisoPropina(aluno, pagamentos, hoje) {
 }
 
 /** Lista única de avisos (serviços + propinas), já ordenada, com texto pronto. */
-export function avisosGerais({ servicos = [], alunos = [], pagamentos = [], documentos = [], pessoas = [] }, hoje) {
-  const out = avisosDocumentos(documentos, pessoas, hoje);
+export function avisosGerais({ servicos = [], alunos = [], pagamentos = [] }, hoje) {
+  const out = [];
   for (const s of servicos) {
     const c = calcular(s, hoje);
     if (c.estado === "ok") continue;
@@ -204,7 +204,6 @@ export const PAPEIS = { pai: "Pai", mae: "Mãe", filho: "Filho(a)", outro: "Outr
 export const CATEGORIAS_DOC = ["BI", "Passaporte", "Académico", "Saúde", "Outro"];
 export const TIPOS_FICHEIRO = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
 export const TAMANHO_MAX = 4 * 1024 * 1024; // 4 MB (limite de pedido das funções da Vercel é 4,5 MB)
-export const AVISO_DOC_DIAS = 30;
 
 export function normalizarPessoa(b) {
   const nome = String(b?.nome ?? "").trim().slice(0, 60);
@@ -223,23 +222,7 @@ export function normalizarDocumento(b) {
     titulo, pessoaId,
     categoria: CATEGORIAS_DOC.includes(b?.categoria) ? b.categoria : "Outro",
     numero: String(b?.numero ?? "").trim().slice(0, 40) || null,
-    validade: ISO.test(b?.validade ?? "") ? b.validade : null,
     nota: String(b?.nota ?? "").trim().slice(0, 200) || null,
   };
 }
 
-/** Avisos de documentos a expirar (≤ 30 dias) ou expirados. */
-export function avisosDocumentos(documentos, pessoas, hoje) {
-  const out = [];
-  for (const d of documentos) {
-    if (!d.validade) continue;
-    const faltam = diffDias(hoje, d.validade);
-    if (faltam > AVISO_DOC_DIAS) continue;
-    const dono = pessoas.find((p) => p.id === d.pessoaId)?.nome;
-    const nome = `${d.titulo}${dono ? ` de ${dono}` : ""}`;
-    out.push(faltam < 0
-      ? { tipo: "documento", id: d.id, nivel: "crit", ordem: -50, numero: -faltam, rotulo: -faltam === 1 ? "dia" : "dias", texto: `${nome} expirou há ${-faltam} ${-faltam === 1 ? "dia" : "dias"} (${dataLonga(d.validade)}).` }
-      : { tipo: "documento", id: d.id, nivel: "warn", ordem: faltam, numero: faltam, rotulo: faltam === 1 ? "dia" : "dias", texto: `${nome} expira ${faltam === 0 ? "hoje" : faltam === 1 ? "amanhã" : `em ${faltam} dias`} (${dataLonga(d.validade)}).` });
-  }
-  return out;
-}

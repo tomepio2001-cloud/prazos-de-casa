@@ -1,7 +1,7 @@
 // POST   /api/documentos                 -> envia um ficheiro (corpo = bytes do ficheiro;
 //                                           metadados no cabeçalho x-doc, JSON codificado em URI)
 // GET    /api/documentos?id=...          -> devolve o ficheiro (só com o PIN)
-// PUT    /api/documentos?id=...          -> altera os metadados (título, categoria, validade…)
+// PUT    /api/documentos?id=...          -> altera os metadados (título, categoria, número, nota)
 // DELETE /api/documentos?id=...          -> apaga o documento e o ficheiro
 import { Readable } from "node:stream";
 import { redis, CHAVE_DOCS, CHAVE_PESSOAS, lerUm, gravar, novoId, idValido, exigirPin, lerCorpo, responder } from "./_lib.js";

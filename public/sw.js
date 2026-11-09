@@ -1,6 +1,6 @@
 // Service worker: guarda a "casca" da app para abrir rápido e funcionar sem rede.
 // Os dados (/api/...) vão sempre à rede; sem rede, a app usa a última lista guardada.
-const CACHE = "prazos-v4";
+const CACHE = "prazos-v5";
 const CASCA = ["/", "/index.html", "/app.js", "/prazos-core.js", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
