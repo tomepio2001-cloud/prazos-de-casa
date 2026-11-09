@@ -114,6 +114,8 @@ input, select { font: inherit; font-size: 16px; padding: 9px 10px; border: 1px s
 @media (max-width: 440px) { .two { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: no-preference) { .alert { animation: in .3s ease both; } @keyframes in { from { transform: translateY(4px); opacity: .6 } } }
 
+.envio { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: 13px; }
+.envio.mau { background: var(--crit-bg); }
 /* Abas */
 .narrow { max-width: 760px; width: 100%; }
 .tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; gap: 4px; padding-block: 8px; border-bottom: 1px solid var(--line); overflow-x: auto; }
@@ -261,6 +263,7 @@ td.cell .cnt { color: var(--muted); font-size: 10px; }
         <div class="topic"><code id="topic">…</code><button class="btn-ghost" type="button" id="copyBtn">Copiar</button></div>
         <p class="note">Guarde o nome do canal só para a família: quem o souber também recebe os avisos.</p>
         <div class="topic"><button class="btn-ghost" type="button" id="testBtn">Enviar notificação de teste</button></div>
+        <p class="envio" id="envioAuto"></p>
       </div>
     </section>
   </div>

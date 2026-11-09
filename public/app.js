@@ -656,8 +656,21 @@ async function carregarConfig() {
     const cfg = await api("/api/config");
     $("topic").textContent = cfg.ntfy ? cfg.ntfy.topico : "(falta definir NTFY_TOPIC na Vercel)";
     $("testBtn").disabled = !cfg.ntfy;
+    mostrarEnvio(cfg);
   } catch (e) { if (e instanceof ErroPin) semPin(e.message); }
 }
+function mostrarEnvio(cfg) {
+  const el = $("envioAuto");
+  const u = cfg.ultimoEnvio;
+  el.classList.toggle("mau", !cfg.cronSecretDefinido || (u && u.ok === false));
+  if (!cfg.cronSecretDefinido) { el.textContent = "Envio automático desligado: falta a variável CRON_SECRET na Vercel."; return; }
+  if (!u) { el.innerHTML = "<b>Envio automático:</b> ainda não correu desde esta versão. Corre uma vez por dia, entre as 8h e as 9h (hora de Angola)."; return; }
+  const d = new Date(u.quando);
+  const quando = `${d.getDate()} ${MESES_CURTOS[d.getMonth()].toLowerCase()} às ${d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}`;
+  const res = u.ok === false ? esc(u.motivo) : u.enviado ? `enviado, com ${u.itens} ${u.itens === 1 ? "aviso" : "avisos"}.` : `correu, mas não enviou nada: ${esc(u.motivo).toLowerCase()}`;
+  el.innerHTML = `<b>Último envio automático:</b> ${quando}: ${res}`;
+}
+
 $("copyBtn").addEventListener("click", async () => {
   const t = $("topic").textContent;
   try { await navigator.clipboard.writeText(t); status("Nome do canal copiado."); }

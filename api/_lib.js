@@ -6,6 +6,7 @@ const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_R
 export const CHAVE = "prazos:servicos"; // hash: id -> JSON do serviço
 export const CHAVE_ALUNOS = "prazos:alunos"; // hash: id -> JSON do menino
 export const CHAVE_PAGAMENTOS = "prazos:pagamentos"; // hash: id -> JSON de um pagamento (histórico)
+export const CHAVE_ENVIO = "prazos:ultimo-envio-auto"; // JSON do último envio automático (diagnóstico)
 
 /** Executa um comando Redis via REST (Upstash). */
 export async function redis(...cmd) {
@@ -71,4 +72,12 @@ export function responder(res, status, body) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(body));
+}
+
+/** Guarda o resultado do último envio automático, para a app mostrar. Nunca falha o pedido. */
+export async function registarEnvio(info) {
+  try { await redis("SET", CHAVE_ENVIO, JSON.stringify({ quando: new Date().toISOString(), ...info })); } catch { /* só diagnóstico */ }
+}
+export async function lerEnvio() {
+  try { const r = await redis("GET", CHAVE_ENVIO); return r ? JSON.parse(r) : null; } catch { return null; }
 }
